@@ -6,7 +6,7 @@ ENV DEBIAN_FRONTEND=noninteractive
 
 # Install OpenJDK 11 and clean up
 RUN apt-get update -y && \
-    apt-get install -y openjdk-11-jdk && \
+    apt-get install -y openjdk-17-jdk && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
 
