@@ -1,8 +1,14 @@
 # Use an official Python image as the base
-FROM python:3.11-slim
+FROM python:3.11-bullseye
 
-# Install OpenJDK 11 (compatible with most Hedera Java dependencies)
-RUN apt-get update && apt-get install -y openjdk-11-jdk && rm -rf /var/lib/apt/lists/*
+# Set environment variables for non-interactive installation
+ENV DEBIAN_FRONTEND=noninteractive
+
+# Install OpenJDK 11 and clean up
+RUN apt-get update -y && \
+    apt-get install -y openjdk-11-jdk && \
+    apt-get clean && \
+    rm -rf /var/lib/apt/lists/*
 
 # Set JAVA_HOME environment variable
 ENV JAVA_HOME=/usr/lib/jvm/java-11-openjdk-amd64
@@ -13,7 +19,7 @@ WORKDIR /app
 
 # Copy requirements.txt and install dependencies
 COPY requirements.txt .
-RUN pip install -r requirements.txt
+RUN pip install --no-cache-dir -r requirements.txt
 
 # Copy the rest of the application code
 COPY . .
@@ -22,5 +28,5 @@ COPY . .
 EXPOSE 5000
 
 # Define the command to run the application
-CMD ["python", "app.py"]
+CMD ["python", "app.py"]  # Use your main app filename here
 
