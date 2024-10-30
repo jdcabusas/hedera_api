@@ -1,32 +1,28 @@
-# Use an official Python image as the base
+# Use the official Python 3.11 image based on Debian Bullseye
 FROM python:3.11-bullseye
 
-# Set environment variables for non-interactive installation
-ENV DEBIAN_FRONTEND=noninteractive
-
-# Install OpenJDK 11 and clean up
-RUN apt-get update -y && \
+# Install OpenJDK 17
+RUN apt-get update && \
     apt-get install -y openjdk-17-jdk && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
 
-# Set JAVA_HOME environment variable
-ENV JAVA_HOME=/usr/lib/jvm/java-11-openjdk-amd64
-ENV PATH="${JAVA_HOME}/bin:${PATH}"
+# Set environment variables for Java
+ENV JAVA_HOME=/usr/lib/jvm/java-17-openjdk-amd64
+ENV JVM_PATH=${JAVA_HOME}/lib/server/libjvm.so
 
-# Set the working directory in the container
+# Set the working directory
 WORKDIR /app
 
-# Copy requirements.txt and install dependencies
-COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
-
-# Copy the rest of the application code
+# Copy the current directory contents into the container at /app
 COPY . .
 
-# Expose the port the app runs on
+# Install any needed packages specified in requirements.txt
+RUN pip install --no-cache-dir -r requirements.txt
+
+# Expose port 5000 for the app
 EXPOSE 5000
 
-# Define the command to run the application
-CMD ["python", "app.py"]  # Use your main app filename here
+# Run the application
+CMD ["python", "app.py"]  # Update with your entry point
 
