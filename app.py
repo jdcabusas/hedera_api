@@ -2,6 +2,7 @@ from flask import Flask, jsonify, request
 from flask_cors import CORS
 import subprocess
 import json
+import os
 
 app = Flask(__name__)
 CORS(app)
@@ -107,6 +108,46 @@ def summarize():
 
     except Exception as e:
         return jsonify({'error': str(e)}), 500
+
+
+@app.route('/transcribe', methods=['POST'])
+def transcribe():
+    if 'file' not in request.files:
+        return jsonify({"error": "No file part in the request."}), 400
+    
+    file = request.files['file']
+
+    if file.filename == '':
+        return jsonify({"error": "No selected file."}), 400
+
+    # Save the uploaded file to a temporary location
+    temp_file_path = os.path.join('temp', file.filename)
+    os.makedirs('temp', exist_ok=True)  # Create temp directory if it doesn't exist
+    file.save(temp_file_path)
+
+    # Execute the auto_speech_recog.py script with the file as a parameter
+    try:
+        result = subprocess.run(
+            ["python", "auto_speech_recog.py", temp_file_path],
+            capture_output=True,
+            text=True,
+            check=True
+        )
+        
+        # Assuming the output of your script is in JSON format
+        output = json.loads(result.stdout)
+
+    except subprocess.CalledProcessError as e:
+        return jsonify({"error": "Error processing the file", "details": e.stderr}), 500
+
+    # Remove the temporary file after processing
+    os.remove(temp_file_path)
+
+    # Return the response
+    return jsonify({
+        "full_text": output.get('text', 'No text returned'),
+        "chunks": output.get('chunks', [])
+    })
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000, debug=True)
