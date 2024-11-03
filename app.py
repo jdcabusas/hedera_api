@@ -77,5 +77,36 @@ def get_topic_ids():
     except Exception as e:
         return jsonify({'success': False, 'message': 'An error occurred.', 'error': str(e)}), 500
 
+@app.route('/summarize', methods=['POST'])
+def summarize():
+    # Get the JSON data from the request
+    data = request.get_json()
+
+    # Check if 'text' is provided in the request data
+    if 'text' not in data:
+        return jsonify({'error': 'No text provided for summarization.'}), 400
+
+    input_text = data['text']
+
+    # Call the summarization script and pass the input text as a parameter
+    try:
+        result = subprocess.run(['python', 'summarization_ai.py', input_text],
+                                stdout=subprocess.PIPE,
+                                stderr=subprocess.PIPE,
+                                text=True)
+
+        # Check for errors in the script execution
+        if result.returncode != 0:
+            return jsonify({'error': 'Error in summarization script: ' + result.stderr}), 500
+
+        # Parse the output as JSON
+        output_json = json.loads(result.stdout)  # Load the JSON output from the script
+
+        # Return the output from the script as JSON
+        return jsonify(output_json), 200
+
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000, debug=True)
