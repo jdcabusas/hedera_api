@@ -150,11 +150,31 @@ def transcribe():
         "chunks": output.get('chunks', [])
     })
 
-# Dictionary to store request counts and timestamps for each IP
-ip_request_log = {}
+# File to store IP request logs
+IP_LOG_FILE = "ip_list.txt"
+
+def load_ip_logs():
+    """Load IP logs from the text file into a dictionary."""
+    if not os.path.exists(IP_LOG_FILE):
+        return {}
+    with open(IP_LOG_FILE, 'r') as file:
+        ip_logs = json.load(file)
+        # Convert timestamps from strings back to datetime objects
+        for ip, timestamps in ip_logs.items():
+            ip_logs[ip] = [datetime.fromisoformat(ts) for ts in timestamps]
+    return ip_logs
+
+def save_ip_logs(ip_logs):
+    """Save IP logs to the text file."""
+    # Convert datetime objects to strings for JSON serialization
+    with open(IP_LOG_FILE, 'w') as file:
+        json.dump({ip: [ts.isoformat() for ts in timestamps] for ip, timestamps in ip_logs.items()}, file)
 
 @app.route('/generate-image', methods=['POST'])
 def generate_image():
+    # Load IP logs from file
+    ip_request_log = load_ip_logs()
+    
     # Get the IP address of the requester
     ip_address = request.remote_addr
     current_time = datetime.now()
@@ -175,6 +195,9 @@ def generate_image():
     
     # Record the new request timestamp
     ip_request_log[ip_address].append(current_time)
+    
+    # Save updated IP logs back to file
+    save_ip_logs(ip_request_log)
     
     # Get the input string from the request
     data = request.json
@@ -198,7 +221,6 @@ def generate_image():
         return send_file(output_image_path, mimetype='image/png')
     else:
         return jsonify({"error": "Image generation failed."}), 500
-
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000, debug=True)
