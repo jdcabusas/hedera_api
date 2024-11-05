@@ -1,9 +1,11 @@
 import requests
 import sys
 import json  # Import json for formatting output
+import os
 
 API_URL = "https://api-inference.huggingface.co/models/facebook/bart-large-cnn"
-headers = {"Authorization": "Bearer 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"}
+hugging_face_token = os.environ.get("HUGGING_FACE_TOKEN")
+headers = {"Authorization": f"Bearer {hugging_face_token}"}
 
 def query(payload):
     response = requests.post(API_URL, headers=headers, json=payload)

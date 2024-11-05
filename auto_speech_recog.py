@@ -2,9 +2,11 @@ import requests
 import base64
 import json
 import argparse
+import os
 
 API_URL = "https://api-inference.huggingface.co/models/openai/whisper-large-v3"
-headers = {"Authorization": "Bearer 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"}
+hugging_face_token = os.environ.get("HUGGING_FACE_TOKEN")
+headers = {"Authorization": f"Bearer {hugging_face_token}"}
 
 def query(filename):
     with open(filename, "rb") as f:

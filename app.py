@@ -1,5 +1,6 @@
-from flask import Flask, jsonify, request
+from flask import Flask, jsonify, request, send_file
 from flask_cors import CORS
+from datetime import datetime, timedelta
 import subprocess
 import json
 import os
@@ -148,6 +149,56 @@ def transcribe():
         "full_text": output.get('text', 'No text returned'),
         "chunks": output.get('chunks', [])
     })
+
+# Dictionary to store request counts and timestamps for each IP
+ip_request_log = {}
+
+@app.route('/generate-image', methods=['POST'])
+def generate_image():
+    # Get the IP address of the requester
+    ip_address = request.remote_addr
+    current_time = datetime.now()
+    
+    # Check or initialize IP entry in ip_request_log
+    if ip_address not in ip_request_log:
+        ip_request_log[ip_address] = []
+    
+    # Filter out requests that are older than 24 hours
+    ip_request_log[ip_address] = [
+        timestamp for timestamp in ip_request_log[ip_address]
+        if timestamp > current_time - timedelta(hours=24)
+    ]
+    
+    # Check if the IP has reached the limit of 3 requests in the past 24 hours
+    if len(ip_request_log[ip_address]) >= 3:
+        return jsonify({"message": "Users can only generate three images in a 24 hour period."}), 200
+    
+    # Record the new request timestamp
+    ip_request_log[ip_address].append(current_time)
+    
+    # Get the input string from the request
+    data = request.json
+    input_string = data.get('input_string')
+
+    if not input_string:
+        return jsonify({"error": "No input string provided"}), 400
+
+    # Prepare the command to run the generate_image.py script
+    command = ['python', 'generate_image.py', input_string]
+
+    # Run the script and wait for it to finish
+    try:
+        subprocess.run(command, check=True)
+    except subprocess.CalledProcessError as e:
+        return jsonify({"error": str(e)}), 500
+
+    # Send the generated image file back to the frontend
+    output_image_path = "output_image.png"
+    if os.path.exists(output_image_path):
+        return send_file(output_image_path, mimetype='image/png')
+    else:
+        return jsonify({"error": "Image generation failed."}), 500
+
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000, debug=True)
