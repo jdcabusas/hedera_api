@@ -151,23 +151,28 @@ def transcribe():
     })
 
 # File to store IP request logs
-IP_LOG_FILE = "ip_list.txt"
+IP_LOG_FILE = "ip_list.json"
 
 def load_ip_logs():
     """Load IP logs from the text file into a dictionary."""
     if not os.path.exists(IP_LOG_FILE):
         return {}
-    with open(IP_LOG_FILE, 'r') as file:
-        ip_logs = json.load(file)
-        # Convert timestamps from strings back to datetime objects
-        for ip, timestamps in ip_logs.items():
-            ip_logs[ip] = [datetime.fromisoformat(ts) for ts in timestamps]
-    return ip_logs
+    
+    try:
+        with open(IP_LOG_FILE, 'r') as file:
+            ip_logs = json.load(file)
+            # Convert timestamps from strings back to datetime objects
+            for ip, timestamps in ip_logs.items():
+                ip_logs[ip] = [datetime.fromisoformat(ts) for ts in timestamps]
+            return ip_logs
+    except (json.JSONDecodeError, ValueError):
+        # If the file is empty or invalid, return an empty dictionary
+        return {}
 
 def save_ip_logs(ip_logs):
     """Save IP logs to the text file."""
-    # Convert datetime objects to strings for JSON serialization
     with open(IP_LOG_FILE, 'w') as file:
+        # Convert datetime objects to strings for JSON serialization
         json.dump({ip: [ts.isoformat() for ts in timestamps] for ip, timestamps in ip_logs.items()}, file)
 
 @app.route('/generate-image', methods=['POST'])
